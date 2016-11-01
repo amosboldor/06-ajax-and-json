@@ -41,28 +41,28 @@ Article.loadAll = function(inputData) {
 
 /* This function below will retrieve the data from either a local or remote
  source, process it, then hand off control to the View: */
-Article.fetchAll = function() {
-  if (localStorage.blogArticles) {
-    /* When our data is already in localStorage:
-    1. We can process and load it,
-    2. Then we can render the index page.  */
-    var parsedData = JSON.parse(localStorage.blogArticles);
-    Article.loadAll(parsedData);
-    articleView.renderIndexPage();
-  } else {
-    /* Without our localStorage in memory, we need to:
-    1. Retrieve our JSON file with $.getJSON
-      1.a Load our json data
-      1.b Store that data in localStorage so that we can skip the server call next time,
-      1.c And then render the index page.*/
-    $.getJSON('/../../data/blogArticles.json', function ( data ) {
-      Article.loadAll(data);
-      var stringifyedData = JSON.stringify(data);
-      localStorage.setItem('blogArticles', stringifyedData);
-      articleView.renderIndexPage();
-    });
-  }
-};
+// Article.fetchAll = function() {
+//   if (localStorage.blogArticles) {
+//     /* When our data is already in localStorage:
+//     1. We can process and load it,
+//     2. Then we can render the index page.  */
+//     var parsedData = JSON.parse(localStorage.blogArticles);
+//     Article.loadAll(parsedData);
+//     articleView.renderIndexPage();
+//   } else {
+//     /* Without our localStorage in memory, we need to:
+//     1. Retrieve our JSON file with $.getJSON
+//       1.a Load our json data
+//       1.b Store that data in localStorage so that we can skip the server call next time,
+//       1.c And then render the index page.*/
+//     $.getJSON('/../../data/blogArticles.json', function ( data ) {
+//       Article.loadAll(data);
+//       var stringifyedData = JSON.stringify(data);
+//       localStorage.setItem('blogArticles', stringifyedData);
+//       articleView.renderIndexPage();
+//     });
+//   }
+// };
 
 /* Great work so far! STRETCH GOAL TIME!? Our main goal in this part of the
    lab will be saving the eTag located in Headers, to see if it's been updated:
@@ -75,3 +75,46 @@ Article.fetchAll = function() {
     } else {}
   }
 */
+var slimStuff;
+Article.fetchAll = function() {
+  if (localStorage.blogArticles) {
+    //  Let's make a request to get the eTag (hint: what method on which
+    //   object could we use to find the eTag?
+    $.ajax({
+      url: '/../../data/blogArticles.json',
+      method: 'HEAD',
+      success: function (data, textStatus, jqXHR) {
+        if (localStorage.ETag === jqXHR.getResponseHeader('ETag')) {
+          console.log('Has Not Changed');
+          var parsedData = JSON.parse(localStorage.blogArticles);
+          Article.loadAll(parsedData);
+          articleView.renderIndexPage();
+        } else {
+          console.log('Has Changed');
+          $.ajax({
+            url: '/../../data/blogArticles.json',
+            method: 'GET',
+            success: function (data, textStatus, jqXHR) {
+              localStorage.setItem('ETag', jqXHR.getResponseHeader('ETag'));
+              Article.loadAll(data);
+              var stringifyedData = JSON.stringify(data);
+              localStorage.setItem('blogArticles', stringifyedData);
+              articleView.renderIndexPage();
+            }
+          });
+        }
+      }
+    });
+  } else {
+    $.ajax({
+      url: '/../../data/blogArticles.json',
+      method: 'GET',
+      success: function (data, textStatus, jqXHR) {
+        console.log('Data: ', data, 'textStatus: ',textStatus);
+        var stringifyedData = JSON.stringify(data);
+        localStorage.setItem('blogArticles', stringifyedData);
+        localStorage.setItem('ETag', jqXHR.getResponseHeader('ETag'));
+      }
+    });
+  }
+};
