@@ -72,4 +72,3 @@ articleView.renderIndexPage = function() {
 
 // TODO: invoke the retrieval process for our data!
 Article.fetchAll();
-articleView.renderIndexPage();
